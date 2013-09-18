@@ -1,0 +1,120 @@
+#!/usr/bin/python
+
+import sys
+import signal
+import time
+import pyIcePAP
+import numpy as np
+
+
+PORT = 5000
+ENCNAME= "EncIn"
+STATUS_ON = 0x200
+STATUS_MOV = 0x400
+MASK = 0x600
+flagEnd = False
+
+
+
+def moveMotor(icepap_ctrl, axis, pos):
+    icepap_ctrl.move(axis,pos)
+    while True:
+        if flagEnd:
+            icepap_ctrl.abort(axis)
+            sys.exit(0)
+        status = long(icepap_ctrl.getStatus(axis),16) & MASK
+        time.sleep(0.1)
+        if (status == STATUS_ON):
+            break
+
+
+
+def signal_handler(signal, frame):
+        print 'Aborting ....'
+        globals = frame.f_globals
+        globals['flagEnd'] = True
+        globals['flagEnd']
+
+
+
+
+
+def movetrack(icepap_ctrl, axis, go_position):
+
+    moveMotor(icepap_ctrl, axis, go_position)
+
+    time.sleep(0.5)
+    ind_pos = long(icepap_ctrl.getPosition(axis))
+    enc_pos = long(icepap_ctrl.getEncoder(axis,ENCNAME))
+
+    return ind_pos, enc_pos
+
+
+
+
+
+if __name__ == '__main__':
+
+    if (len(sys.argv) != 2 and len(sys.argv) != 6):
+        print "Error. -h for help"
+        sys.exit(1)
+
+    if sys.argv[1] == '-h':
+        print "\nHow to use: \nmotor_characterization icepap_host axis lower_pos higher_pos steps_interval\n "
+        sys.exit(0)
+
+
+    signal.signal(signal.SIGINT, signal_handler)
+
+    icepap_host = sys.argv[1]
+    axis = int(sys.argv[2])
+    lower_pos = long(sys.argv[3])
+    higher_pos = long (sys.argv[4])
+    indexer_pulses_interval = long (sys.argv[5])
+
+    data_indexer = []
+    data_encoder = []
+    num_intervals= (higher_pos - lower_pos)/indexer_pulses_interval
+
+    icepap_ctrl = pyIcePAP.EthIcePAP(icepap_host, PORT)
+    time.sleep(0.01)
+
+
+    for i in range(num_intervals):
+
+        position = lower_pos + i*indexer_pulses_interval
+        indexer, encoder = movetrack(icepap_ctrl, axis, position)
+        
+        print ("\nIndexer value: %f\n" %(indexer))
+        print ("\nEncoder value: %f\n" %(encoder))    
+
+        data_indexer.append(indexer)
+        data_encoder.append(encoder)
+
+
+
+
+    f = open('indexer_encoder_values.txt', 'w')
+    f.write("\nLenght of data_indexer table of values: %f\n" %(len(data_indexer)))
+    f.write("\nIndexer values:\n")
+    for i in range(len(data_indexer)):
+        f.write(str(data_indexer[i]))
+        f.write('\n')
+
+    f.write('\n')
+    f.write('\n')
+    f.write('\n')
+    f.write('\n')
+    f.write('\n')
+    f.write("\nLenght of data_encoder table of values: %f\n" %(len(data_encoder)))
+    f.write("\nEncoder values:\n")
+    for i in range(len(data_encoder)):
+        f.write(str(data_encoder[i]))
+        f.write('\n')
+    
+    
+    f.close()
+
+
+
+

@@ -1,0 +1,23 @@
+
+Lenght of data_indexer table of values: 5.000000
+
+Indexer values:
+1330000
+1332000
+1334000
+1336000
+1338000
+
+
+
+
+
+
+Lenght of data_encoder table of values: 5.000000
+
+Encoder values:
+665309
+665672
+666059
+666455
+666848
